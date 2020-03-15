@@ -1,0 +1,23 @@
+{
+  "name": "contact-api-node-v12",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rajan Maharjan",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "eslint": "^6.8.0",
+    "esm": "^3.2.25",
+    "express": "^4.17.1",
+    "express-basic-auth": "^1.2.0",
+    "helmet": "^3.21.3"
+  },
+  "devDependencies": {
+    "mocha": "^7.1.0",
+    "supertest": "^4.0.2"
+  }
+}
