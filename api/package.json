@@ -11,7 +11,7 @@
     "test": "mocha ./test/*",
     "docker:build": "sudo docker build . -t"
   },
-  "author": "Florian GOTO",
+  "author": "Rajan Maharjan",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
@@ -24,15 +24,17 @@
     "test": "test"
   },
   "devDependencies": {
-    "@types/express": "^4.17.2",
+    "@types/cors": "^2.8.6",
+    "@types/express": "^4.17.3",
     "@types/faker": "^4.1.7",
-    "@types/node": "^12.12.12",
+    "@types/helmet": "0.0.45",
+    "@types/node": "^12.12.30",
     "eslint": "^6.7.0",
     "faker": "^4.1.0",
+    "minimist": ">=1.2.2",
     "mocha": "^6.2.2",
     "nodemon": "^2.0.1",
-    "supertest": "^4.0.2",
-    "minimist": ">=1.2.2"
+    "supertest": "^4.0.2"
   },
   "mocha": {
     "require": [

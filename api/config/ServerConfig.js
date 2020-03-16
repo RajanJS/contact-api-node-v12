@@ -12,10 +12,10 @@ export class ServerConfig {
         this.app = Express();
         this.app.set("env", process.env.NODE_ENV);
         this.app.set("port", port);
-        this.registerCORSMiddleware();
-        this.registerHelmetMiddleware();
-        this.registerBasicAuthMiddleware();
-        this.registerJSONMiddleware();
+        this.registerCORSMiddleware()
+            .registerHelmetMiddleware()
+            .registerBasicAuthMiddleware()
+            .registerJSONMiddleware();
 
         middlewares &&
             middlewares.forEach(mdlw => {
@@ -56,7 +56,7 @@ export class ServerConfig {
     }
 
     /**
-     * register any middleare
+     * register any middleware
      * @param {*} middleware
      */
     registerMiddleware(middleware) {
@@ -93,7 +93,7 @@ export class ServerConfig {
      * register Helmet middleware for Security HTTP headers
      */
     registerHelmetMiddleware() {
-        this.app.use(helmet());
+        this.registerMiddleware(helmet());
         return this;
     }
 
