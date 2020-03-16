@@ -34,7 +34,7 @@ export class MongoDao extends MongoClient {
         return await this.dbConnection.collection(collectionName).insertOne(doc);
     }
 
-    async insertAllDocument(collectionName, doc) {
+    async insertDocuments(collectionName, doc) {
         return await this.dbConnection.collection(collectionName).insertMany(doc);
     }
 
@@ -46,5 +46,9 @@ export class MongoDao extends MongoClient {
 
     async deleteDocument(collectionName, filter) {
         return await this.dbConnection.collection(collectionName).deleteOne(filter);
+    }
+
+    async deleteAllDocuments(collectionName) {
+        return await this.dbConnection.collection(collectionName).deleteMany();
     }
 }

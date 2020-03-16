@@ -4,7 +4,7 @@ import helmet from "helmet";
 import basicAuth from "express-basic-auth";
 import { MongoDao } from "./db";
 import { fakeContacts } from "../utils";
-// import { ConfigService } from "./config-service";
+import { ConfigService } from "./config-service";
 
 export class ServerConfig {
     #userAccounts = {
@@ -139,17 +139,17 @@ export class ServerConfig {
     async listen() {
         try {
             const conn = await new MongoDao(
-                "",
+                `mongodb+srv://${ConfigService.MONGO_USER}:${ConfigService.MONGO_PASS}@${ConfigService.MONGO_HOST}/test?retryWrites=true&w=majority`,
                 "contactsdb"
             );
-            //  `mongodb+srv://${ConfigService.MONGO_USER}:${ConfigService.MONGO_PASS}@${ConfigService.MONGO_HOST}/test?retryWrites=true&w=majority`
+            //  
             if (conn) {
                 const collectionName = "contacts";
 
                 // clear contacts collection
                 conn.deleteDocument(collectionName);
                 // populate the collection with contacts
-                conn.insertAllDocument(collectionName, [...fakeContacts.values()]);
+                conn.insertDocuments(collectionName, [...fakeContacts.values()]);
 
                 return this.app.listen(this.port, () => {
                     console.log(`Listening on port: ${this.port}`);
