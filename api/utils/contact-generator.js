@@ -1,6 +1,6 @@
 import { company, name, address, phone, internet, random } from "faker";
 
-const fakeContacts = new Map();
+export const fakeContacts = new Map();
 
 new Array(3).fill("toto").forEach(() => {
     fakeContacts.set(random.uuid(), {
@@ -22,5 +22,3 @@ new Array(3).fill("toto").forEach(() => {
         ]
     });
 });
-
-export { fakeContacts };
