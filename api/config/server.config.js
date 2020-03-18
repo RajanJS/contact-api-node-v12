@@ -5,6 +5,7 @@ import basicAuth from "express-basic-auth";
 import DbConfig from "./db.config";
 import { ConfigService } from "../services";
 import morgan from "morgan";
+import paginate from "express-paginate";
 
 export default class ServerConfig {
     #userAccounts = {
@@ -20,7 +21,8 @@ export default class ServerConfig {
             .registerHelmetMiddleware()
             .registerMorganMiddleware()
             .registerBasicAuthMiddleware()
-            .registerJSONMiddleware();
+            .registerJSONMiddleware()
+            .registerExpressPaginateMiddleware();
 
         middlewares &&
             middlewares.forEach(mdlw => {
@@ -94,6 +96,15 @@ export default class ServerConfig {
         this.registerMiddleware(Express.json());
         return this;
     }
+
+    /**
+ * register Express Paginate middleware for pagianted data response
+ */
+    registerExpressPaginateMiddleware() {
+        this.registerMiddleware(paginate.middleware(2, 100));
+        return this;
+    }
+
 
     /**
      * register CORS middleware for cross origin requests
