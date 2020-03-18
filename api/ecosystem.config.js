@@ -4,13 +4,18 @@ module.exports = {
     script: 'node -r esm .',
 
     // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
-    args: 'one two',
+    args: '',
     instances: 1,
     autorestart: true,
-    watch: false,
+    watch: true,
     max_memory_restart: '1G',
     env: {
-      NODE_ENV: 'development'
+      "NODE_ENV": "development",
+      "MONGO_USER": "admin",
+      "MONGO_PASS": "Note123",
+      "MONGO_HOST": "cluster0-1xgsh.mongodb.net",
+      "API_USER": "admin",
+      "API_PASS": "supersecret2"
     },
     env_production: {
       NODE_ENV: 'production'

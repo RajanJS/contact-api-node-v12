@@ -4,7 +4,9 @@ import { Contact } from "../models";
 
 const getContacts = async (req, res) => {
 
-    const contacts = await Contact.find({});
+    const contacts = await Contact.find()
+        .populate("image")
+        .exec();
 
     res.format({
         json: () => res.json(contacts),
@@ -71,7 +73,10 @@ const getContact = async (req, res, next) => {
 
     const contact = await Contact.findOne({
         _id: new ObjectID(contactId)
-    });
+    })
+        .populate("image")
+        .exec();
+
     res.json(contact);
 };
 
@@ -98,7 +103,7 @@ const putContact = async (req, res, next) => {
     const contactUpdate = req.body;
     contactId || next(errorHandler("Please enter a contact ID", 400));
     contactUpdate || next(errorHandler("Please submit valid contact", 400));
-    (contactUpdate && contactUpdate.primaryContactNumber) || next(errorHandler("Please submit valid contact", 422));
+    // (contactUpdate && contactUpdate.primaryContactNumber) || next(errorHandler("Please submit valid contact", 422));
     const result = await Contact.updateOne(
         { _id: new ObjectID(contactId) },
         { $set: contactUpdate }
