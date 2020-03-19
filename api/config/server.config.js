@@ -3,9 +3,10 @@ import cors from "cors";
 import helmet from "helmet";
 import basicAuth from "express-basic-auth";
 import DbConfig from "./db.config";
-import { ConfigService } from "../services";
 import morgan from "morgan";
 import paginate from "express-paginate";
+import { ConfigService, CacheService } from "../services";
+import { RateLimiterConfig } from ".";
 
 export default class ServerConfig {
     #userAccounts = {
@@ -20,6 +21,7 @@ export default class ServerConfig {
         this.registerCORSMiddleware()
             .registerHelmetMiddleware()
             .registerMorganMiddleware()
+            .registerRateLimiter()
             .registerBasicAuthMiddleware()
             .registerJSONMiddleware()
             .registerExpressPaginateMiddleware();
@@ -132,6 +134,29 @@ export default class ServerConfig {
                 challenge: true
             })
         );
+        return this;
+    }
+
+    /**
+  * Register Rate Limiter middleware to prevent Denial of Service (DoS) attacks
+  */
+    registerRateLimiter() {
+        // set global cache service
+        global.redisCacheService = new CacheService({
+            host: ConfigService.get("REDIS_HOST"),
+            port: ConfigService.get("REDIS_PORT"),
+            password: ConfigService.get("REDIS_PASSWORD")
+        });
+
+        const rateLimitConf = new RateLimiterConfig({
+            client: global.redisCacheService.redisRateLimitClient,
+            maxRequests: ConfigService.get("RATE_LIMIT_MAX_REQUESTS"),
+            windowMs: ConfigService.get("RATE_LIMIT_WINDOW_MS")
+        });
+
+        const limiter = rateLimitConf.redisStoreLimiter;
+
+        this.registerMiddleware(limiter);
         return this;
     }
 
