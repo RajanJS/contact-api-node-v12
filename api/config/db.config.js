@@ -3,8 +3,7 @@ import mongoose from "mongoose";
 import GridFsStorage from "multer-gridfs-storage";
 import crypto from "crypto";
 import path from "path";
-import { ConfigService } from "../services";
-// import { GridFSBucket } from "mongodb";
+import { ConfigService, CacheService } from "../services";
 
 export default class DbConfig {
     /** @type {mongoose.Connection} */
@@ -37,6 +36,13 @@ export default class DbConfig {
             // this.gfsBucket = this.createGridFsBucket("uploads");
             DbConfig.gfsBucket = new mongoose.mongo.GridFSBucket(DbConfig.conn.db, {
                 bucketName: this.bucketName
+            });
+
+            // connect to cache server
+            global.redisCacheService = new CacheService({
+                host: ConfigService.get("REDIS_HOST"),
+                port: ConfigService.get("REDIS_PORT"),
+                password: ConfigService.get("REDIS_PASSWORD")
             });
         });
 

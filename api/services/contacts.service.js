@@ -1,10 +1,31 @@
 import mongoose from "mongoose";
 import { Contact } from "../models";
-import { fmtUtils, generateSelf, errorHandler } from "../utils";
+import { fmtUtils, ContactUtil, generateSelf, errorHandler } from "../utils";
 import DbConfig from "../config/db.config";
-import { contactsUtils } from "../utils";
-
+// import { CacheService } from ".";
+// import ConfigService from "./config.service";
 export default class ContactsService {
+    #contactModel = Contact;
+    #cacheService;
+    #contactUtil;
+    #gfsBucket;
+
+    constructor() { }
+
+    /**
+     * Set dependencies that require open connection to database
+     */
+    setAsyncDependencies() {
+        this.#cacheService = global.redisCacheService;
+        this.#gfsBucket = DbConfig.gfsBucket;
+
+        this.#contactUtil = new ContactUtil(
+            this.#cacheService,
+            this.#contactModel,
+            this.#gfsBucket
+        );
+    }
+
     /**
      *
      * @param {object[]} contacts
@@ -13,9 +34,9 @@ export default class ContactsService {
     generateLinkedContacts(contacts, url) {
         return {
             data: contacts.map(contact => ({
-                data: contact.toJSON(),
+                data: contact,
                 links: generateSelf({
-                    entity: contact.toJSON(),
+                    entity: contact,
                     url
                 })
             })),
@@ -57,7 +78,7 @@ export default class ContactsService {
      * @param {*} contacts
      */
     generateCSVContacts(contacts) {
-        return fmtUtils.convertToCSV(contacts.map(ct => ct.toObject()));
+        return fmtUtils.convertToCSV(contacts);
     }
 
     /**
@@ -78,179 +99,181 @@ export default class ContactsService {
 
     /**
      *
+     * @param {import("mongoose").Schema.Types.ObjectId} userId
      * @param {*} filter
      * @param {*} fields
-     * @param {number} offset
-     * @param {number} limit
-     * @param {string} url
-     * @param {*} next
+     * @param {number} offset page to query
+     * @param {number} limit max number of documents per page
+     * @param {import("express").NextFunction} next
+     *
      */
-    async findContacts(filter = {}, fields, offset, limit, next) {
-        const options = {
-            limit,
-            page: offset,
-            populate: "image",
-            select: fields
-        };
+    async findContacts(userId, filter = {}, fields, offset, limit, next) {
+        // check if contacts for that page are already cached
+        const cachedContactsPage = await this.#cacheService.getContactsForPage(
+            userId,
+            offset
+        );
 
-        const {
-            docs,
-            totalDocs,
-            page,
-            totalPages,
-            hasNextPage,
-            nextPage,
-            hasPrevPage,
-            prevPage,
-            pagingCounter
-        } = await Contact.paginate(filter, options);
+        console.log(
+            `\npage: ${offset}, requested contacts per page: ${limit}, cached contacts: ${
+            cachedContactsPage && cachedContactsPage.docs
+                ? cachedContactsPage.docs.length
+                : "no cache"
+            }`
+        );
+        if (cachedContactsPage && cachedContactsPage.docs.length === limit) {
+            console.log("========= using cache for contacts page ===============");
 
-        if (offset > totalPages)
-            return next(errorHandler("Page number does not exist", 422));
+            return cachedContactsPage;
+        } else {
+            console.log("========= setting cache for contacts page ===============");
 
-        return {
-            docs,
-            totalDocs,
-            page,
-            totalPages,
-            hasNextPage,
-            nextPage,
-            hasPrevPage,
-            prevPage,
-            pagingCounter
-        };
+            await this.#cacheService.purgeCacheNow(userId);
+
+            const options = {
+                limit,
+                page: offset,
+                populate: "image",
+                select: fields
+            };
+
+            const {
+                docs,
+                totalDocs,
+                page,
+                totalPages,
+                hasNextPage,
+                nextPage,
+                hasPrevPage,
+                prevPage,
+                pagingCounter
+            } = await this.#contactModel.paginate(filter, options);
+
+            if (offset > totalPages)
+                return next(errorHandler("Page number does not exist", 422));
+
+            const contactsForPage = {
+                docs,
+                totalDocs,
+                page,
+                totalPages,
+                hasNextPage,
+                nextPage,
+                hasPrevPage,
+                prevPage,
+                pagingCounter
+            };
+
+            // cache data for that page
+            await this.#cacheService.storeContactsForPage(
+                userId,
+                contactsForPage,
+                offset
+            );
+
+            return contactsForPage;
+        }
     }
 
     /**
      * Attach uploaded image to specific contact
-     * @param {string} url
+     * @param {import("mongoose").Schema.Types.ObjectId} userId
      * @param {import("mongoose").Schema.Types.ObjectId} contactId
      * @param {Express.Multer.File} file
-     * @param {NextFunction} next
+     * @param {import("express").NextFunction} next
      */
-    async attachContactImage(url, contactId, file, next) {
-        try {
-            console.log(`\nContact ID: ${contactId} \n`);
-            console.log(`\nFile ID: ${file.id} \n`);
+    async attachContactImage(userId, contactId, file, next) {
+        await this.#cacheService.purgeCacheNow(userId);
 
-            // remove uploaded image = not be linked to contact
-            if (!contactId || !isNaN(contactId)) {
-                console.log("\nDeleting orphan image \n");
+        // remove uploaded image = not be linked to contact
+        if (!contactId || !isNaN(contactId)) {
+            const orphanImageId = file.id;
 
-                contactsUtils.removeExistingImage(url, `orphan__${file.id}`, next);
-                return next(errorHandler("Please enter valid contact ID", 400));
-            }
-
-            const imageData = {
-                image: file.id
-            };
-
-            const contact = await contactsUtils.getContact(url, contactId, next);
-
-            // delete previous image if exists
-            if (contact.image) {
-                console.log("\nDeleting previous image \n");
-
-                await contactsUtils.removeExistingImage(url, contactId, next);
-            }
-
-            console.log(
-                `\nLinking uploaded image to contact ${JSON.stringify(imageData)} \n`
+            await this.#contactUtil.removeExistingImage(
+                new mongoose.Types.ObjectId(orphanImageId)
             );
-
-            const contactUpdateResponse = await contactsUtils.updateContact(
-                url,
-                contactId,
-                imageData,
-                next
-            );
-
-            return contactUpdateResponse.message === "Contact updated"
-                ? true
-                : errorHandler(
-                    `Error Linking image to contact: ${contactUpdateResponse.data}`
-                );
-        } catch (error) {
-            errorHandler(error.message);
+            return next(errorHandler("Please enter valid contact ID", 400));
         }
+        const imageData = {
+            image: file.id
+        };
+        // const contact = await contactsUtils.getContact(url, contactId, next);
+        const contact = await this.#contactUtil.getContact(userId, contactId);
+        // delete previous image if exists
+        if (contact.image) {
+            await this.#contactUtil.removeExistingImage(
+                new mongoose.Types.ObjectId(contact.image._id),
+                userId,
+                contactId
+            );
+        }
+        const updatedWithImage = await this.#contactUtil.updateContact(
+            userId,
+            contactId,
+            imageData
+        );
+        return updatedWithImage;
     }
+
     /**
-   * Get image for specific contact
-   * @param {string} url
-   * @param {*} contactId
-   * @param {import("express").Response} res
-   * @param {import("express").NextFunction} next
-   */
-    async getContactImage(url, contactId, res, next) {
+    * Get image for specific contact
+    * @param {import("mongoose").Schema.Types.ObjectId} userId
+    * @param {import("mongoose").Schema.Types.ObjectId} contactId
+    * @param {import("express").Response} res
+    * @param {import("express").NextFunction} next
+    */
+    async getContactImage(userId, contactId, res, next) {
         if (!contactId)
             return next(errorHandler("Please enter valid contact ID", 400));
-        if (!DbConfig.gfsBucket) return next(errorHandler("No GridFS bucket"));
+        if (!this.#gfsBucket) return next(errorHandler("No GridFS bucket"));
 
         try {
             // retrieve filename
-            const contact = await contactsUtils.getContact(url, contactId, next);
+            const contact = await this.#contactUtil.getContact(userId, contactId);
 
-            let filename;
+            let imageId;
             contact.image
-                ? (filename = contact.image.filename)
+                ? (imageId = contact.image)
                 : next(errorHandler("No image associated to this contact", 404));
-            const files = await DbConfig.gfsBucket.find({ filename }).toArray();
+            const imageObjectId = new mongoose.Types.ObjectId(imageId);
+            const files = await this.#gfsBucket
+                .find({ _id: imageObjectId })
+                .toArray();
             if (!files || files.length === 0) {
                 return next(errorHandler("no files exist", 404));
             }
 
-            DbConfig.gfsBucket.openDownloadStreamByName(filename).pipe(res);
+            this.#gfsBucket.openDownloadStream(imageObjectId).pipe(res);
         } catch (error) {
             next(errorHandler(error.message));
         }
     }
     /**
-  *
-  * @param {string} url
-  * @param {import("mongoose").Schema.Types.ObjectId} contactId
-  * @param {*} next
-  */
-    async deleteContactImage(url, contactId, next) {
+    *
+    * @param {import("mongoose").Schema.Types.ObjectId} userId
+    * @param {import("mongoose").Schema.Types.ObjectId} contactId
+    * @param {import("express").NextFunction} next
+    */
+    async deleteContactImage(userId, contactId, next) {
+        await this.#cacheService.purgeCacheNow(userId);
         if (!contactId)
             return next(errorHandler("Please enter valid contact ID", 400));
-        if (!DbConfig.gfsBucket) return next(errorHandler("No GridFS bucket"));
+        if (!this.#gfsBucket) return next(errorHandler("No GridFS bucket"));
 
         try {
             let imageId;
 
-            // delete orphan umages
-            if (contactId.includes("orphan__")) {
-                console.log("Deleting orphan image");
-
-                imageId = contactId.split("__")[1];
-            } else {
-                // retrieve image id
-                const contact = await contactsUtils.getContact(url, contactId, next);
-
-                contact.image
-                    ? (imageId = contact.image._id)
-                    : next(errorHandler("No image associated to this contact", 404));
-            }
-
-            // need to return an explicit promise because of callback
-            return new Promise((resolve, reject) => {
-                DbConfig.gfsBucket.delete(
-                    new mongoose.Types.ObjectId(imageId),
-                    async err => {
-                        if (err) return reject(err);
-
-                        // remove reference to deleted image from contact
-                        await contactsUtils.updateContact(
-                            url,
-                            contactId,
-                            { image: null },
-                            next
-                        );
-
-                        resolve(true);
-                    }
-                );
-            });
+            // retrieve image id
+            const contact = await this.#contactUtil.getContact(userId, contactId);
+            contact.image
+                ? (imageId = contact.image)
+                : next(errorHandler("No image associated to this contact", 404));
+            const removedImage = await this.#contactUtil.removeExistingImage(
+                new mongoose.Types.ObjectId(imageId),
+                userId,
+                contactId
+            );
+            return removedImage;
         } catch (error) {
             next(errorHandler(error.message));
         }

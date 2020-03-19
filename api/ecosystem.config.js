@@ -15,7 +15,11 @@ module.exports = {
       "MONGO_PASS": "Note123",
       "MONGO_HOST": "cluster0-1xgsh.mongodb.net",
       "API_USER": "admin",
-      "API_PASS": "supersecret2"
+      "API_PASS": "supersecret2",
+      "REDIS_PASSWORD": "cmVkaXNwYXNzMQo=",
+      "REDIS_HOST": "localhost",
+      "REDIS_PORT": 6379,
+      "CORS_WHITELIST": ""
     },
     env_production: {
       NODE_ENV: 'production'
