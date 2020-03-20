@@ -34,6 +34,8 @@
     "morgan": "^1.9.1",
     "multer": "^1.4.2",
     "multer-gridfs-storage": "^4.0.2",
+    "passport": "^0.4.1",
+    "passport-jwt": "^4.0.0",
     "pm2": "^4.2.3",
     "rate-limit-redis": "^1.7.0",
     "redis": "^3.0.2"
@@ -54,6 +56,8 @@
     "@types/multer": "^1.4.2",
     "@types/multer-gridfs-storage": "^4.0.0",
     "@types/node": "^12.12.30",
+    "@types/passport": "^1.0.3",
+    "@types/passport-jwt": "^3.0.3",
     "@types/rate-limit-redis": "^1.7.0",
     "@types/redis": "^2.8.16",
     "eslint": "^6.7.0",

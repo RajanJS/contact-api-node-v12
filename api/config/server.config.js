@@ -1,12 +1,13 @@
 import Express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import basicAuth from "express-basic-auth";
+// import basicAuth from "express-basic-auth";
 import DbConfig from "./db.config";
 import morgan from "morgan";
 import paginate from "express-paginate";
 import { ConfigService, CacheService } from "../services";
 import { RateLimiterConfig } from ".";
+import { AuthMiddleware } from "../middlewares";
 
 export default class ServerConfig {
     #userAccounts = {
@@ -22,7 +23,8 @@ export default class ServerConfig {
             .registerHelmetMiddleware()
             .registerMorganMiddleware()
             .registerRateLimiter()
-            .registerBasicAuthMiddleware()
+            // .registerBasicAuthMiddleware()
+            .registerJwtPassportMiddleware()
             .registerJSONMiddleware()
             .registerExpressPaginateMiddleware();
 
@@ -124,18 +126,29 @@ export default class ServerConfig {
         return this;
     }
 
+    // /**
+    //  * register Helmet middleware for Security HTTP headers
+    //  */
+    // registerBasicAuthMiddleware() {
+    //     this.registerMiddleware(
+    //         basicAuth({
+    //             users: this.#userAccounts,
+    //             challenge: true
+    //         })
+    //     );
+    //     return this;
+    // }
+
     /**
-     * register Helmet middleware for Security HTTP headers
+     * register jwt Passport authentication middleware
      */
-    registerBasicAuthMiddleware() {
-        this.registerMiddleware(
-            basicAuth({
-                users: this.#userAccounts,
-                challenge: true
-            })
-        );
+    registerJwtPassportMiddleware() {
+        const authMdlw = new AuthMiddleware();
+        const passportJwtMiddleware = authMdlw.registerJwtStrategy();
+        this.registerMiddleware(passportJwtMiddleware);
         return this;
     }
+
 
     /**
   * Register Rate Limiter middleware to prevent Denial of Service (DoS) attacks
