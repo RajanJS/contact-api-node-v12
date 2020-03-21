@@ -21,7 +21,9 @@ module.exports = {
       "REDIS_PORT": 6379,
       "CORS_WHITELIST": "",
       "RATE_LIMIT_MAX_REQUESTS": 100,
-      "RATE_LIMIT_WINDOW_MS": 0
+      "RATE_LIMIT_WINDOW_MS": 0,
+      "JWT_TOKEN_SECRET": "",
+      "JWT_TOKEN_ISSUER": ""
     },
     env_production: {
       NODE_ENV: 'production'

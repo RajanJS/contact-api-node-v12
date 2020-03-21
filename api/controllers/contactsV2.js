@@ -8,7 +8,7 @@ export const getBasicContacts = async (req, res, next) => {
     const url = `${req.protocol}://${req.hostname}:${req.app.get("port")}`;
 
     // placeholder user id until authentication is implemented
-    const userId = "placeholder_user_id";
+    const userId = req.user._id.toString();
 
     contactService.setAsyncDependencies();
 
@@ -58,7 +58,7 @@ export const postContactImage = [
     async (req, res, next) => {
 
         // placeholder user id until authentication is implemented
-        const userId = "placeholder_user_id";
+        const userId = req.user._id.toString();
         const contactId = req.params.id;
 
         contactService.setAsyncDependencies();
@@ -80,7 +80,7 @@ export const postContactImage = [
 
 export const getContactImage = async (req, res, next) => {
 
-    const userId = "placeholder_user_id";
+    const userId = req.user._id.toString();
     const contactId = req.params.id;
     contactService.setAsyncDependencies();
     await contactService.getContactImage(userId, contactId, res, next);
@@ -88,7 +88,7 @@ export const getContactImage = async (req, res, next) => {
 };
 
 export const deleteContactImage = async (req, res, next) => {
-    const userId = "placeholder_user_id";
+    const userId = req.user._id.toString();
     const contactId = req.params.id;
 
     contactService.setAsyncDependencies();
@@ -100,4 +100,41 @@ export const deleteContactImage = async (req, res, next) => {
     );
 
     return deleted && res.json({ message: "Image removed" });
+};
+
+export const postUserContact = async (req, res, next) => {
+    const userId = req.user._id;
+    const contactData = req.body;
+
+    const created = await contactService.postUserContact(
+        userId,
+        contactData,
+        next
+    );
+
+    res.status(created ? 201 : 500).json({ created });
+};
+
+export const putUserContact = async (req, res, next) => {
+    const user = req.user;
+    const contactId = req.params.id;
+    const contactData = req.body;
+
+    const updated = await contactService.putUserContact(
+        user,
+        contactId,
+        contactData,
+        next
+    );
+
+    res.status(updated ? 200 : 500).json({ updated });
+};
+
+export const deleteUserContact = async (req, res, next) => {
+    const user = req.user;
+    const contactId = req.params.id;
+
+    const deleted = await contactService.deleteUserContact(user, contactId, next);
+
+    res.status(deleted ? 200 : 500).json({ deleted });
 };
