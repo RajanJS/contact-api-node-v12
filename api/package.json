@@ -8,8 +8,9 @@
   },
   "scripts": {
     "start": "node -r esm .",
-    "start:prod": "pm2-runtime start ecosystem.config.js --env production",
-    "start:dev": "NODE_ENV=development node -r esm ./node_modules/nodemon/bin/nodemon.js .",
+    "preinstall": "npm i -g pm2",
+    "start:prod": "pm2-runtime ecosystem.config.json",
+    "start:dev": "pm2-runtime ecosystem.config.json --env development",
     "debug": "DEBUG=* node -r esm .",
     "test": "mocha ./test/*",
     "docker:build": "sudo docker build . -t"
