@@ -33,13 +33,17 @@ export default class ServerConfig {
                 this.registerMiddleware(mdlw);
             });
 
-        this.app.get("/", (req, res, next) => {
-            // const er = new Error("my bad");
-            // er.statusCode = 501;
-            // throw er;
-            res.json({
-                message: "Server working"
-            });
+        // this.app.get("/", (req, res, next) => {
+        //     // const er = new Error("my bad");
+        //     // er.statusCode = 501;
+        //     // throw er;
+        //     res.json({
+        //         message: "Server working"
+        //     });
+        // });
+
+        this.app.get("/ping", (req, res, next) => {
+            res.send("pong");
         });
 
         routers &&
