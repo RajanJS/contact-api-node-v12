@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(helmet());
 app.use(morgan("short"));
-app.use(express.urlencoded()); // put form data on req body
+app.use(express.urlencoded()); // put form data on req body 
 app.use(express.json());
 
 // set template engine
