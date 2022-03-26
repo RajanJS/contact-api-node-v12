@@ -68,7 +68,7 @@
     "@types/redis": "^2.8.16",
     "eslint": "^6.7.0",
     "faker": "^4.1.0",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "mocha": "^6.2.2",
     "nodemon": "^2.0.1",
     "supertest": "^4.0.2"
